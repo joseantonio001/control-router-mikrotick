@@ -7,3 +7,5 @@ ocupas crear carpetas
     index.html
     queues.html
 app.py
+
+dentro de templates va los html
