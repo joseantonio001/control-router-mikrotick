@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - MikroTik</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Clientes Conectados</h1>
+
+        <a href="{{ url_for('queues') }}">
+            <button class="btn btn-primary rounded-pill px-4" style="height: 45px;">
+                Ir a Queues
+            </button>
+        </a>
+        <a href="{{ url_for('firewall_address_lists') }}">
+            <button class="btn btn-primary rounded-pill px-4" style="height: 45px;">
+                Ir a Firewall
+            </button>
+        </a>
+         <!-- Botón para cerrar sesión -->
+<div class="text-end mt-3">
+    <a href="{{ url_for('logout') }}">
+        <button class="btn btn-danger rounded-pill px-4" style="height: 45px;">
+            Cerrar Sesión
+        </button>
+    </a>
+</div>
+        <!-- Mostrar mensaje de error si existe -->
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+       
+
+        
+
+        <!-- Tabla ARP -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h3 class="text-center">Tabla ARP ({{ total_clients }} clientes)</h2>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                        Agregar Cliente +
+                    </button>
+                </div>
+                
+            </div>
+                <!-- Botón para agregar un nuevo cliente -->
+                <div class="row mt-4 mb-4">  <!-- Agregamos mb-4 para separar el formulario de la tabla -->
+                    <div class="d-flex justify-content-center">
+                        <form method="GET" class="d-flex align-items-center w-50">
+                            <input type="text" name="search" class="form-control rounded-pill px-3" 
+                                   placeholder="🔍 Buscar por nombre" value="{{ search_query }}" style="height: 45px;">
+                            <button type="submit" class="btn btn-primary rounded-pill ms-2 px-4" style="height: 45px;">Buscar</button>
+                        </form>
+                    </div>
+                </div>
+            
+        
+                {% if arp_table %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Dirección IP</th>
+                            <th>Dirección MAC</th>
+                            <th>Interfaz</th>
+                            <th>Comentario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in arp_table %}
+                        <tr>
+                            <td>{{ entry.address }}</td>
+                            <td>{{ entry['mac-address'] }}</td>
+                            <td>{{ entry.interface }}</td>
+                            <td>{{ entry.comment }}</td>
+                            <td>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ loop.index }}">
+                                Modificar
+                            </button>
+                        
+                       
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#blockIpModal{{ loop.index }}">
+                                Bloquear IP
+                            </button>
+                        </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No hay datos disponibles.</p>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Paginación centrada con búsqueda -->
+<div class="text-center mt-3">
+    {% if page > 1 %}
+        <a href="{{ url_for('clientes', page=page-1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Anterior</a>
+    {% endif %}
+
+    <span class="mx-3">Página {{ page }} de {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+        <a href="{{ url_for('clientes', page=page+1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Siguiente</a>
+    {% endif %}
+</div>
+
+       <!-- Modales de edición -->
+{% for entry in arp_table %}
+<div class="modal fade" id="editModal{{ loop.index }}" tabindex="-1" aria-labelledby="editModalLabel{{ loop.index }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel{{ loop.index }}">Modificar Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario de edición -->
+                <form action="{{ url_for('modificar_cliente') }}" method="POST">
+                    <input type="hidden" name="id" value="{{ entry['.id'] }}">
+                    <div class="mb-3">
+                        <label for="ip{{ loop.index }}" class="form-label">Dirección IP</label>
+                        <input type="text" class="form-control" id="ip{{ loop.index }}" name="ip" value="{{ entry.address }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="mac{{ loop.index }}" class="form-label">Dirección MAC</label>
+                        <input type="text" class="form-control" id="mac{{ loop.index }}" name="mac" value="{{ entry['mac-address'] }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="interface{{ loop.index }}" class="form-label">Interfaz</label>
+                        <select class="form-select" id="interface{{ loop.index }}" name="interface">
+                            {% for interface in interface_list %}
+                            <option value="{{ interface }}" {% if interface == entry.interface %}selected{% endif %}>
+                                {{ interface }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment{{ loop.index }}" class="form-label">Comentario</label>
+                        <input type="text" class="form-control" id="comment{{ loop.index }}" name="comment" value="{{ entry.comment }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal para bloquear IP -->
+{% for entry in arp_table %}
+<div class="modal fade" id="blockIpModal{{ loop.index }}" tabindex="-1" aria-labelledby="blockIpModalLabel{{ loop.index }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="blockIpModalLabel{{ loop.index }}">Bloquear IP</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('block_ip') }}" method="POST">
+                    <input type="hidden" name="ip" value="{{ entry.address }}">
+                    <div class="mb-3">
+                        <label for="name{{ loop.index }}" class="form-label">Nombre (Comentario)</label>
+                        <input type="text" class="form-control" id="name{{ loop.index }}" name="name" value="{{ entry.comment }}">
+                    </div>
+                    <button type="submit" class="btn btn-danger">Confirmar Bloqueo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+        <!-- Paginación -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <nav aria-label="Paginación">
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('clientes', page=page-1) }}">Anterior</a></li>
+                        {% endif %}
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('clientes', page=p) }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if page < total_pages %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('clientes', page=page+1) }}">Siguiente</a></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar un nuevo cliente -->
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addClientModalLabel">Agregar Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulario para agregar un nuevo cliente -->
+                <form action="{{ url_for('agregar_cliente') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="new_ip" class="form-label">Dirección IP</label>
+                        <input type="text" class="form-control" id="new_ip" name="new_ip" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_mac" class="form-label">Dirección MAC</label>
+                        <input type="text" class="form-control" id="new_mac" name="new_mac" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_interface" class="form-label">Interfaz</label>
+                        <select class="form-select" id="new_interface" name="new_interface" required>
+                            {% for interface in interface_list %}
+                            <option value="{{ interface }}">{{ interface }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_comment" class="form-label">Comentario</label>
+                        <input type="text" class="form-control" id="new_comment" name="new_comment">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar Cliente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+    <!-- Mostrar mensajes de éxito o error -->
+{% if success %}
+<div class="alert alert-success" role="alert">
+    {{ success }}
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    {{ error }}
+</div>
+{% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

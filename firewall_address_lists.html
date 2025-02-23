@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firewall - Listas de Direcciones IP Bloqueadas</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Listas de Direcciones IP Bloqueadas</h1>
+        <h3 class="text-center">Total de IPs Bloqueadas: {{ address_lists|length }}</h3>
+
+        <a href="{{ url_for('clientes') }}">
+            <button class="btn btn-primary rounded-pill px-4" style="height: 45px;">
+                Ir a Clientes
+            </button>
+        </a>
+        <a href="{{ url_for('queues') }}">
+            <button class="btn btn-primary rounded-pill px-4" style="height: 45px;">
+                Ir a Queues
+            </button>
+        </a>
+
+        <div class="text-end mt-3">
+            <a href="{{ url_for('logout') }}">
+                <button class="btn btn-danger rounded-pill px-4" style="height: 45px;">
+                    Cerrar Sesión
+                </button>
+            </a>
+        </div>
+        
+        <!-- Mostrar mensajes de éxito o error -->
+        {% if success %}
+        <div class="alert alert-success" role="alert">
+            {{ success }}
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Formulario de búsqueda -->
+        <div class="row mt-4 mb-4">
+            <div class="d-flex justify-content-center">
+                <form method="GET" class="d-flex align-items-center w-50">
+                    <input type="text" name="search" class="form-control rounded-pill px-3" 
+                           placeholder="🔍 Buscar por nombre o IP" value="{{ search_query }}" style="height: 45px;">
+                    <button type="submit" class="btn btn-primary rounded-pill ms-2 px-4" style="height: 45px;">Buscar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla de direcciones IP bloqueadas -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre de la Lista</th>
+                            <th>Dirección IP</th>
+                            <th>Fecha de Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in address_lists %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ entry.list }}</td>
+                            <td>{{ entry.address }}</td>
+                            <td>{{ entry.get('creation-time', 'N/A') }}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="confirmDelete('{{ entry.id }}')">
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="text-center mt-3">
+            {% if page > 1 %}
+                <a href="{{ url_for('firewall_address_lists', page=page-1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Anterior</a>
+            {% endif %}
+            <span class="mx-3">Página {{ page }} de {{ total_pages }}</span>
+            {% if page < total_pages %}
+                <a href="{{ url_for('firewall_address_lists', page=page+1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmDelete(id) {
+            if (confirm("¿Estás seguro de que deseas eliminar esta entrada?")) {
+                window.location.href = `/firewall/address_lists/delete/${id}`;
+            }
+        }
+    </script>
+</body>
+</html>

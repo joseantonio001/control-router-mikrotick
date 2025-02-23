@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colas - MikroTik</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Colas de Ancho de Banda</h1>
+        
+
+        <a href="{{ url_for('clientes') }}">
+            <button class="btn btn-primary rounded-pill px-4" style="height: 45px;">
+                Ir a Clientes
+            </button>
+        </a>
+        <h3 class="text-center">Total de Queues: {{ queues|length }}</h3>  <!-- Contador de colas -->
+
+        <!-- Mostrar mensajes de éxito o error -->
+        {% if success %}
+        <div class="alert alert-success" role="alert">
+            {{ success }}
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+        <div class="text-end mt-3">
+            <a href="{{ url_for('logout') }}">
+                <button class="btn btn-danger rounded-pill px-4" style="height: 45px;">
+                    Cerrar Sesión
+                </button>
+            </a>
+        </div>
+                <!-- Botón para cerrar sesión -->
+<div class="text-end mt-3">
+    <a href="{{ url_for('logout') }}">
+        <button class="btn btn-danger rounded-pill px-4" style="height: 45px;">
+            Cerrar Sesión
+        </button>
+    </a>
+</div>
+        
+
+        <!-- Botón para agregar una nueva cola -->
+        <div class="text-end mb-3">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addQueueModal">
+                Agregar Nueva Cola + 
+            </button>
+        </div>
+
+        <!-- Formulario de búsqueda -->
+        <div class="row mt-4 mb-4">
+            <div class="d-flex justify-content-center">
+                <form method="GET" class="d-flex align-items-center w-50">
+                    <input type="text" name="search" class="form-control rounded-pill px-3" 
+                           placeholder="🔍 Buscar por nombre" value="{{ search_query }}" style="height: 45px;">
+                    <button type="submit" class="btn btn-primary rounded-pill ms-2 px-4" style="height: 45px;">Buscar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla de colas -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre</th>
+                            <th>Destino</th>
+                            <th>Límite Máximo de Subida</th>
+                            <th>Límite Máximo de Bajada</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for queue in queues %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ queue.name }}</td>
+                            <td>{{ queue.target }}</td>
+                            <td>{{ queue['max-limit-up'] }}</td>
+                            <td>{{ queue['max-limit-down'] }}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editQueueModal{{ loop.index }}">
+                                    Modificar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="text-center mt-3">
+            {% if page > 1 %}
+                <a href="{{ url_for('queues', page=page-1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Anterior</a>
+            {% endif %}
+            <span class="mx-3">Página {{ page }} de {{ total_pages }}</span>
+            {% if page < total_pages %}
+                <a href="{{ url_for('queues', page=page+1, search=search_query) }}" class="btn btn-outline-primary btn-sm">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal para modificar una cola -->
+    {% for queue in queues %}
+    <div class="modal fade" id="editQueueModal{{ loop.index }}" tabindex="-1" aria-labelledby="editQueueModalLabel{{ loop.index }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editQueueModalLabel{{ loop.index }}">Modificar Cola</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('modificar_cola') }}" method="POST">
+                        <input type="hidden" name="target" value="{{ queue.target }}">
+                        <div class="mb-3">
+                            <label for="name{{ loop.index }}" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="name{{ loop.index }}" name="name" value="{{ queue.name }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="max_limit_up{{ loop.index }}" class="form-label">Límite Máximo de Subida</label>
+                            <input type="text" class="form-control" id="max_limit_up{{ loop.index }}" name="max_limit_up" value="{{ queue['max-limit-up'] }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="max_limit_down{{ loop.index }}" class="form-label">Límite Máximo de Bajada</label>
+                            <input type="text" class="form-control" id="max_limit_down{{ loop.index }}" name="max_limit_down" value="{{ queue['max-limit-down'] }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Modal para agregar una nueva cola -->
+    <div class="modal fade" id="addQueueModal" tabindex="-1" aria-labelledby="addQueueModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addQueueModalLabel">Agregar Nueva Cola</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="{{ url_for('agregar_cola') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="new_target" class="form-label">Dirección IP (Target)</label>
+                            <input type="text" class="form-control" id="new_target" name="new_target" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_name" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="new_name" name="new_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_max_limit_up" class="form-label">Límite Máximo de Subida</label>
+                            <input type="text" class="form-control" id="new_max_limit_up" name="new_max_limit_up" placeholder="Ej: 10M" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_max_limit_down" class="form-label">Límite Máximo de Bajada</label>
+                            <input type="text" class="form-control" id="new_max_limit_down" name="new_max_limit_down" placeholder="Ej: 20M" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Agregar Cola</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
